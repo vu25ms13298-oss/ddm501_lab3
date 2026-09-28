@@ -1,0 +1,49 @@
+# =============================================================================
+# Model Validation Pipeline for Movie Rating API
+# DDM501 - Lab 3: Testing & CI/CD
+# =============================================================================
+
+name: Model Validation
+
+on:
+  push:
+    paths:
+      - 'models/**'
+      - 'pipeline/**'
+      - 'scripts/**'
+
+jobs:
+  validate-model:
+    name: Validate Model
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Train model
+        run: python scripts/train_model.py
+
+      - name: Validate model performance
+        run: |
+          python -c "
+          from app.model import MovieRatingModel
+          model = MovieRatingModel()
+          assert model.is_loaded(), 'Model failed to load'
+
+          prediction = model.predict('196', '242')
+          assert 1.0 <= prediction <= 5.0, f'Prediction {prediction} out of range'
+
+          print('Model validation passed!')
+          print(f'Sample prediction: {prediction}')
+          "
